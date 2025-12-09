@@ -1,25 +1,16 @@
-﻿namespace AuthenticationService.Sqlite;
-internal class AuthService : IAuthService
+﻿using Microsoft.Extensions.DependencyInjection;
+
+namespace AuthenticationService.Sqlite;
+public class AuthService : IAuthService
 {
     private readonly AuthContext _context;
-    private readonly string _connectionString;
-
-    public AuthService(string connectionString)
-    {
-        _connectionString = connectionString;
-        _context = CreateContext();
-    }
 
     internal AuthService(AuthContext context)
     {
         _context = context;
     }
 
-    private AuthContext CreateContext()
-    {
-        return _context ?? new AuthContext(_connectionString);
-    }
-
+    public IServiceProvider Services { get; private set; }
 
     public bool LoginUser(string userName, string password)
     {        
@@ -60,5 +51,19 @@ internal class AuthService : IAuthService
         _context.Users.Remove(user);
         _context.SaveChanges();
         return true;
+    }
+
+    
+    public void EnsureDatabaseCreated()
+    {
+        var services = new ServiceCollection();
+
+        Services = services.BuildServiceProvider();
+
+        using (var scope = Services.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AuthContext>();
+            context.Database.EnsureCreated();
+        }
     }
 }

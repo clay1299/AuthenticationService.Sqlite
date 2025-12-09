@@ -9,11 +9,9 @@
 	  <PackageId>AuthenticationService.Sqlite</PackageId>
 	  <Version>1.0.0</Version>
 	  <Authors>clay1299</Authors>
-	  <Company>Твоя Компания</Company>
 	  <Description>Библиотека для авторизации пользователей в WPF с SQLite и BCrypt</Description>
 	  <PackageTags>Authentication;SQLite;WPF;Login;UserManagement</PackageTags>
 	  <PackageLicenseExpression>MIT</PackageLicenseExpression>
-	  <PackageReadmeFile>README.md</PackageReadmeFile>
 
 	  <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
