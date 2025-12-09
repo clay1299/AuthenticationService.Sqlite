@@ -1,6 +1,20 @@
 # AuthenticationService.Sqlite
 
+[![NuGet](https://img.shields.io/nuget/v/AuthenticationService.Sqlite.svg?style=flat-square&logo=nuget)](https://www.nuget.org/packages/AuthenticationService.Sqlite/)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## Установка
+
+#### Package Manager
+```powershell
+Install-Package AuthenticationService.Sqlite
+```
+
+#### .NET CLI
+```bash
+dotnet add package AuthenticationService.Sqlite
+```
 
 ## Описание
 
