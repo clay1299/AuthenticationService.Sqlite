@@ -1,9 +1,13 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace AuthenticationService.Sqlite;
 public class AuthService : IAuthService
 {
     private readonly AuthContext _context;
+    private const string _remeberMePath = "remember.dat";
 
     internal AuthService(AuthContext context)
     {
@@ -53,17 +57,43 @@ public class AuthService : IAuthService
         return true;
     }
 
-    
-    public void EnsureDatabaseCreated()
+    public void RememverMe(string userName)
     {
-        var services = new ServiceCollection();
+        var user = _context.Users.FirstOrDefault(u => u.UserName == userName);
+        if (user == null)
+            throw new Exception("Incorrect userName");
 
-        Services = services.BuildServiceProvider();
+        string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _remeberMePath);
 
-        using (var scope = Services.CreateScope())
-        {
-            var context = scope.ServiceProvider.GetRequiredService<AuthContext>();
-            context.Database.EnsureCreated();
-        }
+        byte[] data = Encoding.UTF8.GetBytes(user.Id.ToString());
+        byte[] enc = ProtectedData.Protect(data, null, DataProtectionScope.CurrentUser);
+
+        File.WriteAllBytes(path, enc);
+        File.SetAttributes(path, FileAttributes.Hidden | FileAttributes.NotContentIndexed);
+    }
+
+    public User GetRememberUser()
+    {
+        string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _remeberMePath);
+
+        if (!File.Exists(path))
+            return null;
+
+        byte[] enc = File.ReadAllBytes(path);
+        byte[] dec = ProtectedData.Unprotect(enc, null, DataProtectionScope.CurrentUser);
+
+        string idStr = Encoding.UTF8.GetString(dec);
+
+        if (!int.TryParse(idStr, out int userId))
+            return null;
+
+        return _context.Users.FirstOrDefault(u => u.Id == userId);
+    }
+
+    public void ClearRememberMe()
+    {
+        string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _remeberMePath);
+        if (File.Exists(path))
+            File.Delete(path);
     }
 }

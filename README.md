@@ -18,7 +18,7 @@ dotnet add package AuthenticationService.Sqlite
 
 ## Описание
 
-Простая, гибкая и легковесная библиотека для добавления аутентификации и авторизации пользователей с использованием SQLite в .NET приложениях. Работает с Dependency Injection. Хэширует пароли с помощью [BCrypt](https://github.com/BcryptNet/bcrypt.net).
+Простая, гибкая и легковесная библиотека для добавления аутентификации, авторизации и безопасного RememberMe-функционала в .NET/WPF приложениях. Работает с Dependency Injection. Использует SQLite и встроенный безопасный механизм защиты данных Windows DPAPI. Пароли хэшируются с помощью [BCrypt](https://github.com/BcryptNet/bcrypt.net).
 
 ## Функциональность
 
@@ -28,11 +28,12 @@ dotnet add package AuthenticationService.Sqlite
 - 💾 **SQLite хранение** - легковесная база данных
 - 🏗️ **Интеграция с DI** - готовность к использованию в ASP.NET Core и приложениях с DI
 - 📦 **Минимальные зависимости** - только необходимые пакеты
+- ⭐ Безопасный Remember Me
 
 
 ## Быстрый старт
 
-### С Dependency Injection
+### Подключение через Dependency Injection
 
 App.xaml.cs
 ```csharp
@@ -107,6 +108,56 @@ public partial class MainWindow : Window
         else
             MessageBox.Show("User already exists");
     }
+}
+```
+
+### RememberMe
+
+Сохранение пользователя после успешного входа
+
+```csharp
+private void login_click(object sender, RoutedEventArgs e)
+{
+    var login = tbLogin.Text;
+    var pass = tbPassword.Password;
+
+    bool result = _authService.LoginUser(login, pass);
+
+    if (result)
+    {
+        if (cbRememberMe.IsChecked == true)
+            _authService.RememverMe(login);
+
+        MessageBox.Show("Success!");
+    }
+    else
+    {
+        MessageBox.Show("Fail");
+    }
+}
+```
+
+Автоматический вход при старте приложения
+
+```csharp
+protected override void OnStartup(StartupEventArgs e)
+{
+    base.OnStartup(e);
+
+    var auth = App.Current.Services.GetRequiredService<IAuthService>();
+    var remembered = auth.GetRememberUser();
+
+    if (remembered != null)
+    {
+        // Пользователь найден — сразу открываем основное окно
+        var main = App.Current.Services.GetRequiredService<MainWindow>();
+        main.Show();
+        return;
+    }
+
+    // Иначе — открываем окно авторизации
+    var loginWindow = new LoginWindow();
+    loginWindow.Show();
 }
 ```
 
