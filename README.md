@@ -24,6 +24,7 @@ dotnet add package AuthenticationService.Sqlite
 
 - 🔐 **Аутентификация** - проверка логина/пароля
 - 👥 **Регистрация** - создание новых пользователей
+- 🎭 **Роли** - роли админа и пользователя
 - 🔒 **Хэширование паролей** - с использованием BCrypt
 - 💾 **SQLite хранение** - легковесная база данных
 - 🏗️ **Интеграция с DI** - готовность к использованию в ASP.NET Core и приложениях с DI
@@ -55,7 +56,9 @@ public partial class App : Application
 
         var services = new ServiceCollection();
 
-        services.AddAuthService("Data Source=auth.db");
+        // рекомендую использовать именно такую версию. Что бы бд случайно не удалилась пользователем.
+        services.AddAuthService($"Data Source={DirectoryHelper.GetAppDataPath("TestApp", "auth.db")}"); 
+
         services.AddSingleton<MainWindow>();
 
         Services = services.BuildServiceProvider();
@@ -140,25 +143,21 @@ private void login_click(object sender, RoutedEventArgs e)
 Автоматический вход при старте приложения
 
 ```csharp
-protected override void OnStartup(StartupEventArgs e)
-{
-    base.OnStartup(e);
-
-    var auth = App.Current.Services.GetRequiredService<IAuthService>();
-    var remembered = auth.GetRememberUser();
-
-    if (remembered != null)
+public MainWindow(IAuthService authService)
     {
-        // Пользователь найден — сразу открываем основное окно
-        var main = App.Current.Services.GetRequiredService<MainWindow>();
-        main.Show();
-        return;
-    }
+        InitializeComponent();
+        _authService = authService ?? throw new ArgumentNullException(nameof(authService));
 
-    // Иначе — открываем окно авторизации
-    var loginWindow = new LoginWindow();
-    loginWindow.Show();
-}
+        var person = _authService.GetRememberUser();
+        if(person is User user)
+        {
+            MessageBox.Show($"Добро пожаловать {person.UserName}");
+        }
+        else if(person is Admin admin)
+        {
+            MessageBox.Show($"Добро пожаловать, Админ {person.UserName}");
+        }
+    }
 ```
 
 

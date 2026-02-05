@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using AuthenticationService.Sqlite.Interface;
+using AuthenticationService.Sqlite.Model;
+using Microsoft.Extensions.DependencyInjection;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -9,9 +11,9 @@ public class AuthService : IAuthService
     private readonly AuthContext _context;
     private const string _remeberMePath = "remember.dat";
 
-    internal AuthService(AuthContext context)
+    public AuthService(AuthContext context)
     {
-        _context = context;
+        _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
     public IServiceProvider Services { get; private set; }
@@ -22,9 +24,40 @@ public class AuthService : IAuthService
         if (user == null)
             return false;
 
-        bool verifed = BCrypt.Net.BCrypt.Verify(password, user.Password);
-        return verifed;
-        
+        return BCrypt.Net.BCrypt.Verify(password, user.Password);
+    }
+
+    public bool LoginUser(string userName, string password, out bool isAdmin)
+    {
+        isAdmin = false;
+
+        var admin = _context.Admins.FirstOrDefault(u => u.UserName == userName);
+        if (admin != null)
+        {
+            if (BCrypt.Net.BCrypt.Verify(password, admin.Password))
+            {
+                isAdmin = true;
+                return true;
+            }
+            return false;
+        }
+
+        var user = _context.Users.FirstOrDefault(u => u.UserName == userName);
+        if (user != null)
+        {
+            return BCrypt.Net.BCrypt.Verify(password, user.Password);
+        }
+
+        return false;
+    }
+
+    public bool LoginAdmin(string userName, string password)
+    {
+        var admin = _context.Admins.FirstOrDefault(u => u.UserName == userName);
+        if (admin == null)
+            return false;
+
+        return BCrypt.Net.BCrypt.Verify(password, admin.Password);
     }
 
     public bool RegisterUser(string userName, string password)
@@ -57,37 +90,60 @@ public class AuthService : IAuthService
         return true;
     }
 
-    public void RememverMe(string userName)
+    public void RememberMe(string userName)
     {
         var user = _context.Users.FirstOrDefault(u => u.UserName == userName);
-        if (user == null)
-            throw new Exception("Incorrect userName");
+        var admin = _context.Admins.FirstOrDefault(u => u.UserName == userName);
+
+        if (user == null && admin == null)
+            throw new Exception($"Incorrect userName: {userName}");
+
+        string dataToStore = admin != null
+            ? $"Admin:{admin.Id}"
+            : $"User:{user!.Id}";
 
         string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _remeberMePath);
+        if (File.Exists(path))
+        {
+            File.SetAttributes(path, FileAttributes.Normal);
+        }
 
-        byte[] data = Encoding.UTF8.GetBytes(user.Id.ToString());
+        byte[] data = Encoding.UTF8.GetBytes(dataToStore);
         byte[] enc = ProtectedData.Protect(data, null, DataProtectionScope.CurrentUser);
 
         File.WriteAllBytes(path, enc);
         File.SetAttributes(path, FileAttributes.Hidden | FileAttributes.NotContentIndexed);
     }
 
-    public User GetRememberUser()
+    public IAuthEntity? GetRememberUser()
     {
         string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _remeberMePath);
 
-        if (!File.Exists(path))
+        if (!File.Exists(path)) return null;
+
+        try
+        {
+            byte[] enc = File.ReadAllBytes(path);
+            byte[] dec = ProtectedData.Unprotect(enc, null, DataProtectionScope.CurrentUser);
+            string storedString = Encoding.UTF8.GetString(dec);
+
+            var parts = storedString.Split(':');
+            if (parts.Length != 2) return null;
+
+            string role = parts[0];
+            if (!int.TryParse(parts[1], out int id)) return null;
+
+            return role switch
+            {
+                "Admin" => (IAuthEntity?)_context.Admins.FirstOrDefault(a => a.Id == id),
+                "User" => (IAuthEntity?)_context.Users.FirstOrDefault(u => u.Id == id),
+                _ => null
+            };
+        }
+        catch
+        {
             return null;
-
-        byte[] enc = File.ReadAllBytes(path);
-        byte[] dec = ProtectedData.Unprotect(enc, null, DataProtectionScope.CurrentUser);
-
-        string idStr = Encoding.UTF8.GetString(dec);
-
-        if (!int.TryParse(idStr, out int userId))
-            return null;
-
-        return _context.Users.FirstOrDefault(u => u.Id == userId);
+        }
     }
 
     public void ClearRememberMe()

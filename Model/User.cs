@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace AuthenticationService.Sqlite;
+namespace AuthenticationService.Sqlite.Model;
 
-public class User
+public class User : IAuthEntity
 {
     [Key]
     public int Id { get; set; }
