@@ -131,7 +131,7 @@ private void login_click(object sender, RoutedEventArgs e)
     if (result)
     {
         if (cbRememberMe.IsChecked == true)
-            _authService.RememverMe(login);
+            _authService.RememberMe(login);
 
         MessageBox.Show("Success!");
     }
