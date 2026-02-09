@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
 
 	  <PackageId>AuthenticationService.Sqlite</PackageId>
-	  <Version>1.2.0</Version>
+	  <Version>1.3.0</Version>
 	  <Authors>clay1299</Authors>
 	  <Description>Библиотека для авторизации пользователей в WPF с SQLite и BCrypt</Description>
 	  <PackageTags>Authentication;SQLite;WPF;Login;UserManagement</PackageTags>
@@ -16,6 +16,8 @@
 	  <PackageProjectUrl>https://github.com/clay1299/AuthenticationService.Sqlite</PackageProjectUrl>
 
 	  <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+	  <PackageIcon>logo.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,6 +28,13 @@
 
 	<ItemGroup>
 		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Update="logo.png">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
 	</ItemGroup>
 
 </Project>

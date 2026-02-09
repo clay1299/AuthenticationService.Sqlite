@@ -1,9 +1,11 @@
 ﻿using AuthenticationService.Sqlite.Interface;
 using AuthenticationService.Sqlite.Model;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace AuthenticationService.Sqlite;
 public class AuthService : IAuthService
@@ -78,6 +80,30 @@ public class AuthService : IAuthService
     }
 
     public bool UserExists(string userName) => _context.Users.Any(u => u.UserName == userName);
+
+    public List<Person> GetAll()
+    {
+        var users = _context.Users
+            .AsNoTracking() 
+            .Select(u => new Person
+            {
+                Id = u.Id,
+                UserName = u.UserName,
+                Role = Roles.User
+            });
+
+        var admins = _context.Admins
+            .AsNoTracking()
+            .Select(a => new Person
+            {
+                Id = a.Id,
+                UserName = a.UserName,
+                Role = Roles.Admin
+            });
+
+        return users.Concat(admins).ToList();
+    }
+
 
     public bool DeleteUser(string userName)
     {

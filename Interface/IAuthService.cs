@@ -16,6 +16,11 @@ public interface IAuthService
     bool DeleteUser(string userName);
 
     /// <summary>
+    /// Returns all persons, including admins
+    /// </summary>
+    List<Person> GetAll();
+
+    /// <summary>
     /// Remember person
     /// </summary>
     /// <param name="userName">login</param>
