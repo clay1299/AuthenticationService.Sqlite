@@ -1,24 +1,33 @@
 ﻿using AuthenticationService.Sqlite.Interface;
 using AuthenticationService.Sqlite.Model;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace AuthenticationService.Sqlite;
 public class AuthService : IAuthService
 {
     private readonly AuthContext _context;
     private const string _remeberMePath = "remember.dat";
+    private Person _currentUser;
 
     public AuthService(AuthContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
-    public IServiceProvider Services { get; private set; }
+    public Person CurrentUser
+    {
+        get => _currentUser;
+        private set
+        {
+            if(_currentUser != value)
+                _currentUser = value;
+        }
+    }
+
+    public void RemoveCurrentUser() => CurrentUser = null;
 
     public bool LoginUser(string userName, string password)
     {        
@@ -26,7 +35,17 @@ public class AuthService : IAuthService
         if (user == null)
             return false;
 
-        return BCrypt.Net.BCrypt.Verify(password, user.Password);
+        if (BCrypt.Net.BCrypt.Verify(password, user.Password))
+        {
+            CurrentUser = new Person
+            {
+                Id = user.Id,
+                UserName = user.UserName,
+                Role = Roles.User
+            };
+            return true;
+        }
+        return false;
     }
 
     public bool LoginUser(string userName, string password, out bool isAdmin)
@@ -39,6 +58,12 @@ public class AuthService : IAuthService
             if (BCrypt.Net.BCrypt.Verify(password, admin.Password))
             {
                 isAdmin = true;
+                CurrentUser = new Person
+                {
+                    Id = admin.Id,
+                    UserName = admin.UserName,
+                    Role = Roles.Admin
+                };
                 return true;
             }
             return false;
@@ -47,7 +72,16 @@ public class AuthService : IAuthService
         var user = _context.Users.FirstOrDefault(u => u.UserName == userName);
         if (user != null)
         {
-            return BCrypt.Net.BCrypt.Verify(password, user.Password);
+            if(BCrypt.Net.BCrypt.Verify(password, user.Password))
+            {
+                CurrentUser = new Person
+                {
+                    Id = user.Id,
+                    UserName = user.UserName,
+                    Role = Roles.User
+                };
+                return true;
+            }
         }
 
         return false;
@@ -59,7 +93,17 @@ public class AuthService : IAuthService
         if (admin == null)
             return false;
 
-        return BCrypt.Net.BCrypt.Verify(password, admin.Password);
+        if(BCrypt.Net.BCrypt.Verify(password, admin.Password))
+        {
+            CurrentUser = new Person
+            {
+                Id = admin.Id,
+                UserName = admin.UserName,
+                Role = Roles.Admin
+            };
+            return true;
+        }
+        return false;
     }
 
     public bool RegisterUser(string userName, string password)
@@ -69,13 +113,22 @@ public class AuthService : IAuthService
 
         string hashedPassword = BCrypt.Net.BCrypt.HashPassword(password);
 
-        _context.Users.Add(new User
+        var newUser = new User
         {
             UserName = userName,
             Password = hashedPassword
-        });
+        };
 
+        _context.Users.Add(newUser);
         _context.SaveChanges();
+
+        CurrentUser = new Person
+        {
+            Id = newUser.Id,
+            UserName = newUser.UserName,
+            Role = Roles.User
+        };
+
         return true;
     }
 
@@ -159,12 +212,23 @@ public class AuthService : IAuthService
             string role = parts[0];
             if (!int.TryParse(parts[1], out int id)) return null;
 
-            return role switch
+            IAuthEntity? entity = role switch
             {
                 "Admin" => (IAuthEntity?)_context.Admins.FirstOrDefault(a => a.Id == id),
                 "User" => (IAuthEntity?)_context.Users.FirstOrDefault(u => u.Id == id),
                 _ => null
             };
+
+            if(entity != null)
+            {
+                CurrentUser = new Person
+                {
+                    Id = entity.Id,
+                    UserName = entity.UserName,
+                    Role = role == "Admin" ? Roles.Admin : Roles.User
+                };
+            }
+            return entity;
         }
         catch
         {

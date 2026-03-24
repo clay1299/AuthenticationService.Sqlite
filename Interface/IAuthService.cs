@@ -3,6 +3,13 @@
 namespace AuthenticationService.Sqlite.Interface;
 public interface IAuthService
 {
+    Person CurrentUser { get; }
+
+    /// <summary>
+    /// Очищает текущего пользователя (вызывать при выходе из приложения)
+    /// </summary>
+    public void RemoveCurrentUser();
+
     bool LoginUser(string userName, string password);
 
     bool LoginUser(string userName, string password, out bool isAdmin);
